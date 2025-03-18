@@ -329,17 +329,23 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Remote processing server for object detection')
     
-    # Client connection parameters
-    parser.add_argument('--client-host', type=str, required=True, 
-                        help='IP address or hostname of the client (MacBook)')
-    parser.add_argument('--client-port', type=int, default=8081, 
-                        help='Port of the webcam stream on the client (default: 8081)')
-    parser.add_argument('--server-port', type=int, default=8082, 
+    # Server configuration
+    parser.add_argument('--port', type=int, default=8082, 
                         help='Port to serve processed stream (default: 8082)')
     
+    # Client connection parameters (optional)
+    parser.add_argument('--client-url', type=str, 
+                        help='URL of client webcam stream (e.g., http://client-ip:8081/video.mjpeg)')
+    
+    # Camera options
+    parser.add_argument('--webcam', action='store_true',
+                        help='Use local webcam instead of client stream')
+    parser.add_argument('--camera', type=int, default=0,
+                        help='Camera index to use with --webcam (default: 0)')
+    
     # The model parameters
-    parser.add_argument('--model', type=str, choices=['mobilenet', 'yolo', 'yolov8'], default='yolov8',
-                        help='Model to use: mobilenet, yolo, or yolov8 (default: yolov8)')
+    parser.add_argument('--model', type=str, choices=['mobilenet', 'yolo', 'yolov8'], default='mobilenet',
+                        help='Model to use: mobilenet, yolo, or yolov8 (default: mobilenet)')
     parser.add_argument('--confidence', type=float, default=0.5, 
                         help='Confidence threshold (default: 0.5)')
     parser.add_argument('--nms', type=float, default=0.4, 
@@ -360,9 +366,6 @@ def main():
     if args.classes:
         target_classes = [cls.strip() for cls in args.classes.split(',')]
     
-    # Client URL for webcam stream
-    client_url = f"http://{args.client_host}:{args.client_port}/video.mjpeg"
-    
     # Get all IP addresses of this host
     host_ips = []
     try:
@@ -378,41 +381,80 @@ def main():
         pass
     
     print("\n====== Remote Object Detection Server ======")
-    print(f"Server running on port: {args.server_port}")
+    print(f"Server running on port: {args.port}")
     print(f"Server IP addresses: {', '.join(list(set(host_ips)))}")
-    print(f"Expecting client connection from: {args.client_host}:{args.client_port}")
-    print("=============================================")
     
-    # Test network connectivity to client
-    print("\nTesting network connectivity to client...")
-    try:
-        # Try to connect to client IP address
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2)
-        result = s.connect_ex((args.client_host, args.client_port))
-        if result == 0:
-            print(f"Success: Connected to client at {args.client_host}:{args.client_port}")
-        else:
-            print(f"Warning: Could not connect to client at {args.client_host}:{args.client_port}")
-            print(f"Error code: {result}")
-            print("This might be normal if the client hasn't started streaming yet.")
-        s.close()
-    except Exception as e:
-        print(f"Error testing connection to client: {e}")
+    if args.webcam:
+        print(f"Using local webcam (camera index: {args.camera})")
+    elif args.client_url:
+        print(f"Expecting client stream from: {args.client_url}")
+    else:
+        print("No input source specified. Use --webcam or --client-url.")
+        parser.print_help()
+        sys.exit(1)
+    
+    print("=============================================")
     
     # Check if the server port is already in use
     try:
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.bind(('0.0.0.0', args.server_port))
+        test_socket.bind(('0.0.0.0', args.port))
         test_socket.close()
-        print(f"Port {args.server_port} is available.")
+        print(f"Port {args.port} is available.")
     except socket.error as e:
-        print(f"Warning: Port {args.server_port} may be in use: {e}")
-        
-    print("\n")
+        print(f"Warning: Port {args.port} may be in use: {e}")
     
-    # Start the processed stream server
-    httpd = run_processed_stream_server(args.server_port)
+    # Add a webcam handler
+    class WebcamHandler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            """Handle POST requests for webcam frames from client"""
+            if self.path == '/webcam':
+                content_length = int(self.headers['Content-Length'])
+                # Read the data from the request
+                post_data = self.rfile.read(content_length)
+                
+                try:
+                    # Convert to numpy array
+                    nparr = np.frombuffer(post_data, np.uint8)
+                    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if img is not None:
+                        # Update the global frame with lock
+                        with latest_frame_lock:
+                            global latest_frame
+                            latest_frame = img
+                            
+                        # Send a simple response
+                        self.send_response(200)
+                        self.send_header('Content-type', 'text/plain')
+                        self.end_headers()
+                        self.wfile.write(b"OK")
+                    else:
+                        self.send_response(400)
+                        self.end_headers()
+                        self.wfile.write(b"Failed to decode image")
+                except Exception as e:
+                    print(f"Error processing webcam frame: {e}")
+                    self.send_response(500)
+                    self.end_headers()
+                    self.wfile.write(str(e).encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+                
+        def log_message(self, format, *args):
+            # Suppress logs to keep console clean
+            return
+    
+    # Start the webcam handler server if we're receiving client frames
+    if not args.webcam and args.client_url:
+        webcam_server = HTTPServer(('0.0.0.0', args.port), WebcamHandler)
+        webcam_thread = threading.Thread(target=webcam_server.serve_forever)
+        webcam_thread.daemon = True
+        webcam_thread.start()
+        print(f"Webcam server started on port {args.port}")
+        
+    # Start the processed stream server (for sending processed frames back)
+    httpd = run_processed_stream_server(args.port)
     
     # Start processing frames in a separate thread (start this first to initialize the model)
     process_thread = threading.Thread(
@@ -429,10 +471,34 @@ def main():
     process_thread.daemon = True
     process_thread.start()
     
-    # Start receiving webcam stream in a separate thread
-    receive_thread = threading.Thread(target=receive_webcam_stream, args=(client_url,))
-    receive_thread.daemon = True
-    receive_thread.start()
+    # If using local webcam, start capturing from it
+    if args.webcam:
+        def capture_webcam():
+            global latest_frame
+            cap = cv2.VideoCapture(args.camera)
+            if not cap.isOpened():
+                print(f"Error: Could not open camera {args.camera}")
+                return
+            
+            print(f"Started capturing from webcam {args.camera}")
+            while processing_active:
+                ret, frame = cap.read()
+                if ret:
+                    with latest_frame_lock:
+                        latest_frame = frame
+                time.sleep(0.01)  # Small delay to reduce CPU usage
+            
+            cap.release()
+            print("Webcam capture stopped")
+        
+        webcam_thread = threading.Thread(target=capture_webcam)
+        webcam_thread.daemon = True
+        webcam_thread.start()
+    # Otherwise, start receiving webcam stream from client
+    elif args.client_url:
+        receive_thread = threading.Thread(target=receive_webcam_stream, args=(args.client_url,))
+        receive_thread.daemon = True
+        receive_thread.start()
     
     try:
         # Keep the main thread alive
@@ -444,6 +510,8 @@ def main():
         processing_active = False
         time.sleep(1)  # Give threads time to clean up
         httpd.shutdown()
+        if not args.webcam and args.client_url:
+            webcam_server.shutdown()
         print("Done")
 
 if __name__ == "__main__":

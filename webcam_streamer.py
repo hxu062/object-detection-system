@@ -61,6 +61,12 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
             cv2.putText(frame, f"Time: {time.strftime('%H:%M:%S')}", (10, 60), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
             
+            # Optional frame preview
+            if debug:
+                cv2.imshow('Webcam Stream', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
             # Encode frame to JPEG
             _, img_encoded = cv2.imencode('.jpg', frame)
             
@@ -100,6 +106,8 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
         print("Interrupted by user")
     finally:
         cap.release()
+        if debug:
+            cv2.destroyAllWindows()
         print(f"Webcam stream stopped. Sent {frames_sent} frames.")
 
 def main():
@@ -110,14 +118,19 @@ def main():
     parser.add_argument('--fps', type=int, default=15, help='Target frames per second')
     parser.add_argument('--width', type=int, default=640, help='Width of webcam frames')
     parser.add_argument('--height', type=int, default=480, help='Height of webcam frames')
-    parser.add_argument('--debug', action='store_true', help='Enable debug output')
+    parser.add_argument('--debug', action='store_true', help='Enable debug output and preview window')
     args = parser.parse_args()
+    
+    # If the URL doesn't end with /webcam, add it
+    server_url = args.url
+    if not server_url.endswith('/webcam'):
+        server_url = server_url.rstrip('/') + '/webcam'
     
     try:
         # Start streaming in a thread
         stream_thread = threading.Thread(
             target=stream_webcam,
-            args=(args.url, args.fps, args.debug, args.width, args.height)
+            args=(server_url, args.fps, args.debug, args.width, args.height)
         )
         stream_thread.daemon = True
         stream_thread.start()

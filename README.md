@@ -1,6 +1,16 @@
-# Webcam Processing System
+# Object Detection System
 
-This project provides scripts for streaming webcam footage to a remote processing server and viewing the processed results.
+A versatile object detection system with support for real-time webcam tracking and video file processing.
+
+## Features
+
+- Support for multiple detection models:
+  - MobileNet SSD (fastest, but less accurate)
+  - YOLOv4-tiny (good balance of speed and accuracy) 
+  - YOLOv8 (most accurate, with multiple implementations)
+- Real-time webcam tracking
+- Video file processing (single or batch)
+- Remote processing server for client-server setup
 
 ## Requirements
 
@@ -8,84 +18,86 @@ This project provides scripts for streaming webcam footage to a remote processin
 - OpenCV
 - NumPy
 - Requests
+- PyTorch (for YOLOv8)
 
 Install dependencies:
 ```bash
-pip install opencv-python numpy requests
+pip install -r requirements.txt
 ```
 
-## Scripts
+## System Components
 
-### 1. Connection Test
+### 1. Remote Processing Server
 
-Tests basic connectivity to the remote server:
-
-```bash
-./connection_test.py http://server-ip:port
-```
-
-### 2. Fix Stream (Viewer Only)
-
-Views processed frames from the server in a browser:
+Runs on a server (Linux recommended) to process webcam feeds from clients:
 
 ```bash
-./fix_stream.py http://server-ip:port/processed.mjpeg
+./remote_processing_server.py --port 8082 --model yolov8
 ```
 
 Options:
-- `--port PORT`: Specify a different port (default: 9099)
-- `--debug`: Enable debug output
-- `--test`: Run in test pattern mode without attempting to connect
+- `--port PORT`: Server port (default: 8082)
+- `--model {mobilenet,yolo,yolov8}`: Detection model (default: mobilenet)
+- `--confidence CONFIDENCE`: Detection threshold (default: 0.5)
+- `--client-url URL`: URL to fetch webcam stream from (default: constructed from client IP)
 
-### 3. Webcam Streamer (Streamer Only)
+### 2. Client-Side Tools
 
-Streams webcam footage to the server:
+#### Webcam Streaming and Viewing
+
+Use the following scripts to interact with the remote server:
 
 ```bash
-./webcam_streamer.py http://server-ip:port/webcam
+# Test connection to server
+./connection_test.py http://server-ip:8082
+
+# Stream webcam to server
+./webcam_streamer.py http://server-ip:8082/webcam
+
+# View processed stream in browser
+./fix_stream.py http://server-ip:8082/processed.mjpeg
+
+# All-in-one solution (stream and view)
+./all_in_one.py http://server-ip:8082
+```
+
+### 3. Video Processing
+
+For processing saved video files:
+
+```bash
+# Process a single video
+./main.py video --video path/to/video.mp4 --output path/to/output.mp4 --model yolov8
+
+# Batch process multiple videos
+./main.py video --batch --input-dir path/to/videos --output-dir path/to/outputs --model yolov8
 ```
 
 Options:
-- `--fps FPS`: Target frames per second (default: 15)
-- `--width WIDTH`: Width of frames (default: 640)
-- `--height HEIGHT`: Height of frames (default: 480)
-- `--debug`: Enable debug output
+- `--model {mobilenet,yolo,yolov8}`: Detection model (default: mobilenet)
+- `--confidence CONFIDENCE`: Detection threshold (default: 0.5)
+- `--generate-report`: Generate analysis report (batch mode only)
 
-### 4. All-in-One (Streamer + Viewer)
+## Running the Complete System
 
-Combines the webcam streaming and frame viewing in a single script:
+### Server Side (Remote Machine)
 
-```bash
-./all_in_one.py http://server-ip:port
-```
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Download models: `python core/download_models.py`
+4. Start the server: `./remote_processing_server.py --port 8082 --model yolov8`
 
-Options:
-- `--viewer-port PORT`: Specify a different port for the viewer (default: 9099)
-- `--fps FPS`: Target frames per second for webcam (default: 15)
-- `--width WIDTH`: Width of webcam frames (default: 640)
-- `--height HEIGHT`: Height of webcam frames (default: 480)
-- `--debug`: Enable debug output
-- `--test`: Run in test pattern mode without webcam
+### Client Side (Local Machine)
+
+1. Clone this repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Use the all-in-one script: `./all_in_one.py http://server-ip:8082`
+4. Open your browser: `http://localhost:9099/`
 
 ## Troubleshooting
 
-### Connectivity Issues
-- Use `connection_test.py` to check basic connectivity to the server
-- Ensure the server is running and accepting connections
-- Check firewall settings on both client and server
-- Verify correct IP addresses and port numbers
-
-### Webcam Issues
-- Make sure webcam is connected and not in use by another application
-- Try different resolutions if camera fails to initialize
-
-### Display Issues
-- Always use the browser at http://localhost:9099/ (or your specified port)
-- If no frames appear, check server connectivity
-- The test pattern should appear if server connection fails
-
-## Server Endpoints
-
-The system expects the remote server to have these endpoints:
-- `/webcam`: Receives webcam frames via POST requests
-- `/processed.mjpeg`: Streams processed frames as MJPEG stream 
+- Use `./connection_test.py` to verify server connectivity
+- Try different models if processing is too slow
+- Check webcam access on the client
+- Ensure proper paths for video processing
+- Run with `--debug` flag for more verbose output 
