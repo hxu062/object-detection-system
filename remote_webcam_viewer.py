@@ -16,10 +16,12 @@ import argparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import requests
 from io import BytesIO
+import sys
 
 # Global variables for the streams
 processed_frame = None
 processed_frame_lock = threading.Lock()
+connection_active = True
 
 class WebcamStreamHandler(BaseHTTPRequestHandler):
     """Handle HTTP requests for the webcam stream"""
@@ -38,7 +40,7 @@ class WebcamStreamHandler(BaseHTTPRequestHandler):
                     print("Error: Could not open webcam")
                     return
                 
-                while True:
+                while connection_active:
                     ret, frame = cap.read()
                     if not ret:
                         print("Warning: Failed to grab frame")
@@ -88,9 +90,43 @@ def run_webcam_server(port=8081):
 
 def receive_processed_stream(remote_host, remote_port=8082):
     """Receive and display the processed video stream from the remote host"""
+    global connection_active
     url = f"http://{remote_host}:{remote_port}/processed.mjpeg"
     
     print(f"Connecting to processed stream at {url}")
+    print("Waiting for remote server to be ready...")
+    
+    # Try to connect to the server
+    connected = False
+    retry_count = 0
+    max_retries = 10
+    
+    while not connected and retry_count < max_retries:
+        try:
+            # Test connection first
+            test_response = requests.head(url, timeout=2)
+            if test_response.status_code == 200:
+                connected = True
+                print("Connected to remote server!")
+            else:
+                print(f"Server responded with status code: {test_response.status_code}")
+                retry_count += 1
+                time.sleep(2)
+        except requests.exceptions.ConnectionError:
+            print(f"Connection failed (attempt {retry_count+1}/{max_retries}). Is the remote server running?")
+            retry_count += 1
+            time.sleep(2)
+        except Exception as e:
+            print(f"Error testing connection: {e}")
+            retry_count += 1
+            time.sleep(2)
+    
+    if not connected:
+        print("Failed to connect to remote server after multiple attempts.")
+        print("Please ensure the remote server is running with:")
+        print(f"  python remote_processing_server.py --client-host YOUR_MACBOOK_IP --model yolov8")
+        connection_active = False
+        return
     
     try:
         # Set up the window to display the processed stream
@@ -101,15 +137,16 @@ def receive_processed_stream(remote_host, remote_port=8082):
         boundary = b"--jpgboundary"
         
         # Make a streaming request
-        response = requests.get(url, stream=True, timeout=10)
+        response = requests.get(url, stream=True, timeout=30)
         
         if response.status_code != 200:
             print(f"Error: Received status code {response.status_code} from remote server")
+            connection_active = False
             return
         
         # Process the multipart stream
         for chunk in response.iter_content(chunk_size=1024):
-            if not chunk:
+            if not chunk or not connection_active:
                 continue
             
             # Add the chunk to our buffer
@@ -144,22 +181,54 @@ def receive_processed_stream(remote_host, remote_port=8082):
                 
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to remote server: {e}")
+        print("Please check if the server is running and the IP is correct.")
     except Exception as e:
         print(f"Error in receive_processed_stream: {e}")
+    finally:
+        connection_active = False
+        print("Stream connection closed")
 
 def display_results():
     """Display the processed frames"""
+    global connection_active
+    
     try:
-        while True:
+        # Create a blank frame to show initially
+        blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+        text = "Waiting for connection to remote server..."
+        cv2.putText(blank_frame, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
+        cv2.imshow("Object Detection", blank_frame)
+        cv2.waitKey(1)
+        
+        last_update = time.time()
+        frame_count = 0
+        
+        while connection_active:
             # Get the latest processed frame with lock
             with processed_frame_lock:
                 frame = processed_frame.copy() if processed_frame is not None else None
             
             if frame is not None:
+                # Calculate FPS
+                frame_count += 1
+                current_time = time.time()
+                if current_time - last_update >= 1.0:
+                    fps = frame_count / (current_time - last_update)
+                    cv2.putText(frame, f"Display FPS: {fps:.1f}", (10, 60), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                    frame_count = 0
+                    last_update = current_time
+                
                 cv2.imshow("Object Detection", frame)
+            else:
+                # Show waiting message if no frame is available
+                cv2.imshow("Object Detection", blank_frame)
             
             # Check for exit key (q)
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                connection_active = False
                 break
             
             # Slight delay to reduce CPU usage
@@ -168,6 +237,7 @@ def display_results():
         print(f"Error in display_results: {e}")
     finally:
         cv2.destroyAllWindows()
+        print("Display closed")
 
 def main():
     # Parse arguments
@@ -177,8 +247,29 @@ def main():
     parser.add_argument("--remote-port", type=int, default=8082, help="Port for receiving processed stream (default: 8082)")
     args = parser.parse_args()
     
+    # Get local IP for instructions
+    local_ip = "unknown"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except:
+        pass
+    
+    print("\n====== Remote Object Detection Client ======")
+    print(f"Your MacBook's IP address is: {local_ip}")
+    print("Make sure the remote server is running with:")
+    print(f"  python remote_processing_server.py --client-host {local_ip} --model yolov8")
+    print("=============================================\n")
+    
     # Start the webcam streaming server
     httpd = run_webcam_server(args.webcam_port)
+    
+    # Start the display thread first
+    display_thread = threading.Thread(target=display_results)
+    display_thread.daemon = True
+    display_thread.start()
     
     # Start receiving processed stream in a separate thread
     receive_thread = threading.Thread(target=receive_processed_stream, args=(args.remote_host, args.remote_port))
@@ -186,14 +277,17 @@ def main():
     receive_thread.start()
     
     try:
-        # Display the results
-        display_results()
+        # Keep the main thread alive until user interrupts
+        while connection_active:
+            time.sleep(0.5)
     except KeyboardInterrupt:
         print("Interrupted by user")
     finally:
         # Clean up
+        connection_active = False
         print("Shutting down webcam server...")
         httpd.shutdown()
+        time.sleep(1)
         print("Done")
 
 if __name__ == "__main__":
