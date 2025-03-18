@@ -11,6 +11,7 @@ import numpy as np
 import threading
 import sys
 import os
+import platform
 
 # Global variables for control
 running = True
@@ -44,6 +45,14 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
     
     print(f"Starting webcam stream to {server_url} at {fps} FPS")
     
+    # Check if we're on macOS (which often has issues with imshow)
+    is_macos = platform.system() == 'Darwin'
+    if is_macos and debug:
+        print("Warning: Debug preview is disabled on macOS due to compatibility issues")
+        debug_preview = False
+    else:
+        debug_preview = debug
+    
     try:
         while running:
             loop_start = time.time()
@@ -61,11 +70,15 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
             cv2.putText(frame, f"Time: {time.strftime('%H:%M:%S')}", (10, 60), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
             
-            # Optional frame preview
-            if debug:
-                cv2.imshow('Webcam Stream', frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+            # Optional frame preview (only if not on macOS)
+            if debug_preview:
+                try:
+                    cv2.imshow('Webcam Stream', frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                except Exception as e:
+                    print(f"Warning: Could not display preview window: {e}")
+                    debug_preview = False  # Disable for future iterations
             
             # Encode frame to JPEG
             _, img_encoded = cv2.imencode('.jpg', frame)
@@ -98,7 +111,7 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
                 time.sleep(sleep_time)
             
             # Print actual FPS occasionally
-            if frames_sent % 100 == 0:
+            if frames_sent % 100 == 0 and frames_sent > 0:
                 actual_fps = 1.0 / (time.time() - loop_start)
                 print(f"Actual FPS: {actual_fps:.2f}")
     
@@ -106,7 +119,7 @@ def stream_webcam(server_url, fps=15, debug=False, width=640, height=480):
         print("Interrupted by user")
     finally:
         cap.release()
-        if debug:
+        if debug_preview:
             cv2.destroyAllWindows()
         print(f"Webcam stream stopped. Sent {frames_sent} frames.")
 
