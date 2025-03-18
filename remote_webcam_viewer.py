@@ -21,7 +21,7 @@ import sys
 # Global variables for the streams
 processed_frame = None
 processed_frame_lock = threading.Lock()
-connection_active = True
+connection_active = False  # Initialize to False and set to True in main()
 
 class WebcamStreamHandler(BaseHTTPRequestHandler):
     """Handle HTTP requests for the webcam stream"""
@@ -262,6 +262,10 @@ def main():
     print("Make sure the remote server is running with:")
     print(f"  python remote_processing_server.py --client-host {local_ip} --model yolov8")
     print("=============================================\n")
+    
+    # Set connection active before starting threads
+    global connection_active
+    connection_active = True
     
     # Start the webcam streaming server
     httpd = run_webcam_server(args.webcam_port)
