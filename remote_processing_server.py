@@ -88,7 +88,7 @@ class ProcessedStreamHandler(BaseHTTPRequestHandler):
 
 def run_processed_stream_server(port=8082):
     """Run the server that streams processed frames back to the client"""
-    server_address = ('', port)
+    server_address = ('0.0.0.0', port)
     httpd = HTTPServer(server_address, ProcessedStreamHandler)
     print(f"Starting processed stream server on port {port}")
     
@@ -223,13 +223,26 @@ def process_frames(model, confidence=0.5, target_classes=None, yolo_size='m', fo
     try:
         if model == 'yolov8':
             # Map command-line args to wrapper implementation options
-            yolo_impl = force_yolo if force_yolo else 'yolov8core'
+            force_onnx = False
+            force_yolov4 = False
+            force_yolov8core = False
+            
+            if force_yolo:
+                if force_yolo == 'onnx':
+                    force_onnx = True
+                elif force_yolo == 'yolov4-tiny':
+                    force_yolov4 = True
+                elif force_yolo == 'yolov8core':
+                    force_yolov8core = True
+            
+            # Initialize YOLOv8Wrapper with the correct parameters
             tracker = YOLOv8Wrapper(
                 confidence_threshold=confidence,
                 target_classes=target_classes,
                 model_size=yolo_size,
-                nms_threshold=nms,
-                implementation=yolo_impl
+                force_onnx=force_onnx,
+                force_yolov4=force_yolov4,
+                force_yolov8core=force_yolov8core
             )
         elif model == 'yolo':
             # Initialize YOLOv4 tracker
@@ -368,7 +381,35 @@ def main():
     print(f"Server running on port: {args.server_port}")
     print(f"Server IP addresses: {', '.join(list(set(host_ips)))}")
     print(f"Expecting client connection from: {args.client_host}:{args.client_port}")
-    print("=============================================\n")
+    print("=============================================")
+    
+    # Test network connectivity to client
+    print("\nTesting network connectivity to client...")
+    try:
+        # Try to connect to client IP address
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(2)
+        result = s.connect_ex((args.client_host, args.client_port))
+        if result == 0:
+            print(f"Success: Connected to client at {args.client_host}:{args.client_port}")
+        else:
+            print(f"Warning: Could not connect to client at {args.client_host}:{args.client_port}")
+            print(f"Error code: {result}")
+            print("This might be normal if the client hasn't started streaming yet.")
+        s.close()
+    except Exception as e:
+        print(f"Error testing connection to client: {e}")
+    
+    # Check if the server port is already in use
+    try:
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        test_socket.bind(('0.0.0.0', args.server_port))
+        test_socket.close()
+        print(f"Port {args.server_port} is available.")
+    except socket.error as e:
+        print(f"Warning: Port {args.server_port} may be in use: {e}")
+        
+    print("\n")
     
     # Start the processed stream server
     httpd = run_processed_stream_server(args.server_port)
