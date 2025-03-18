@@ -28,10 +28,13 @@ echo "Running object detection on webcam stream..."
 docker run --rm \
     -v "$(pwd)/output:/app/output" \
     --add-host=host.docker.internal:host-gateway \
-    object-detection-system webcam --model yolov8 --video http://host.docker.internal:8081/video.mjpeg --output /app/output/webcam_output.mp4
+    -e DISPLAY= \
+    -e QT_X11_NO_MITSHM=1 \
+    -e QT_QPA_PLATFORM=offscreen \
+    object-detection-system webcam --model yolov8 --video http://host.docker.internal:8081/video.mjpeg --no-display
 
 # Clean up - kill streaming server
 echo "Stopping webcam streaming server..."
 kill $STREAM_PID
 
-echo "Done! Output video saved to output/webcam_output.mp4" 
+echo "Done! Object detection processing completed." 

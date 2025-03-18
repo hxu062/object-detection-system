@@ -26,10 +26,18 @@ class WebcamStreamHandler(BaseHTTPRequestHandler):
                     print("Error: Could not open webcam")
                     return
                 
+                print("Webcam streaming started. Local preview window opened.")
+                print("Press 'q' in the preview window to stop streaming.")
+                
                 while True:
                     ret, frame = cap.read()
                     if not ret:
                         print("Warning: Failed to grab frame")
+                        break
+                    
+                    # Show preview
+                    cv2.imshow('MacOS Webcam Preview', frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
                     
                     # Encode frame as JPEG
@@ -51,6 +59,8 @@ class WebcamStreamHandler(BaseHTTPRequestHandler):
             finally:
                 if 'cap' in locals() and cap.isOpened():
                     cap.release()
+                cv2.destroyAllWindows()
+                print("Webcam streaming stopped.")
         else:
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
@@ -69,6 +79,7 @@ def run_server():
     except KeyboardInterrupt:
         print("Server shutting down...")
         httpd.server_close()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     run_server() 
