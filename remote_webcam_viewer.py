@@ -20,9 +20,14 @@ import sys
 import os
 import traceback
 
-# Set environment variables to help with OpenCV display issues
+# Change the OpenCV environment variables - try different backends
+# Comment out the offscreen rendering which prevents windows from showing
 os.environ['OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS'] = '0'
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'  # Try offscreen rendering first
+# os.environ['QT_QPA_PLATFORM'] = 'offscreen'  # This prevents window display
+os.environ['OPENCV_COCOA_ENABLE_COMPATIBILTY_MODE'] = '1'  # For macOS
+
+# Tell macOS to allow Python to create windows
+os.environ['OBJC_DISABLE_INITIALIZE_FORK_SAFETY'] = 'YES'
 
 # Global variables for the streams
 processed_frame = None
@@ -111,13 +116,18 @@ def run_webcam_server(port=8081):
     thread.start()
     return httpd
 
-def receive_processed_stream(remote_host, remote_port=8082):
+def receive_processed_stream(remote_host, remote_port=8082, save_dir=None):
     """Receive and display the processed video stream from the remote host"""
     global connection_active, frames_received, decode_errors, last_frame_time
     url = f"http://{remote_host}:{remote_port}/processed.mjpeg"
     
     print(f"Connecting to processed stream at {url}")
     print("Waiting for remote server to be ready...")
+    
+    # Create save directory if needed
+    if save_dir and not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+        print(f"Created directory for saving frames: {save_dir}")
     
     # Try to connect to the server
     connected = False
@@ -150,6 +160,10 @@ def receive_processed_stream(remote_host, remote_port=8082):
         print(f"  python remote_processing_server.py --client-host YOUR_MACBOOK_IP --model yolov8")
         connection_active = False
         return
+    
+    # For saving frames periodically
+    save_interval = 30  # Save every 30th frame
+    last_save_time = time.time()
     
     try:
         # Create a buffer to store the multipart stream
@@ -195,6 +209,14 @@ def receive_processed_stream(remote_host, remote_port=8082):
                                         frames_received += 1
                                         last_frame_time = time.time()
                                         
+                                        # Save frames periodically if save_dir is specified
+                                        if save_dir and (frames_received % save_interval == 0 or time.time() - last_save_time >= 5.0):
+                                            timestamp = time.strftime("%Y%m%d_%H%M%S")
+                                            filename = f"{save_dir}/frame_{frames_received}_{timestamp}.jpg"
+                                            cv2.imwrite(filename, img)
+                                            print(f"Saved frame {frames_received} to {filename}")
+                                            last_save_time = time.time()
+                                        
                                         # Update the global frame with lock to avoid race conditions
                                         with processed_frame_lock:
                                             global processed_frame
@@ -231,24 +253,49 @@ def display_results():
         text = "Waiting for connection to remote server..."
         cv2.putText(blank_frame, text, (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
-        # Try different UI backends if one fails
+        # Try different UI backends and window creation methods
         window_created = False
         
-        for backend in [cv2.WINDOW_NORMAL, cv2.WINDOW_AUTOSIZE]:
+        # First try: macOS native window
+        try:
+            # Destroy any existing windows first
+            cv2.destroyAllWindows()
+            # Try to create a window with native macOS support
+            cv2.namedWindow("Object Detection", cv2.WINDOW_NORMAL)
+            cv2.imshow("Object Detection", blank_frame)
+            cv2.waitKey(1)
+            window_created = True
+            print("Created display window using WINDOW_NORMAL")
+        except Exception as e:
+            print(f"Failed to create window with WINDOW_NORMAL: {e}")
+            
+            # Second try: auto-size window
             try:
-                cv2.namedWindow("Object Detection", backend)
+                cv2.destroyAllWindows()
+                cv2.namedWindow("Object Detection", cv2.WINDOW_AUTOSIZE)
                 cv2.imshow("Object Detection", blank_frame)
                 cv2.waitKey(1)
                 window_created = True
-                print("Created display window")
-                break
+                print("Created display window using WINDOW_AUTOSIZE")
             except Exception as e:
-                print(f"Failed to create window with backend {backend}: {e}")
+                print(f"Failed to create window with WINDOW_AUTOSIZE: {e}")
+                
+                # Third try: direct imshow without namedWindow
+                try:
+                    cv2.destroyAllWindows()
+                    cv2.imshow("Object Detection", blank_frame)
+                    cv2.waitKey(1)
+                    window_created = True
+                    print("Created display window using direct imshow")
+                except Exception as e:
+                    print(f"Failed to create window with direct imshow: {e}")
         
         if not window_created:
             print("ERROR: Could not create any display window. Running in headless mode.")
+            print("Tip: Try installing XQuartz for macOS if you're on a Mac.")
             # Keep running to support streaming, just don't display
         
+        # Rest of the display function remains the same
         last_update = time.time()
         frame_count = 0
         stats_update_time = time.time()
@@ -288,24 +335,27 @@ def display_results():
                 
                 try:
                     cv2.imshow("Object Detection", current_frame)
+                    # Ensure window is refreshed
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord('q'):
+                        connection_active = False
+                        break
                 except Exception as e:
                     print(f"Error displaying frame: {e}")
             elif window_created:
                 # Show waiting message if no frame is available
                 try:
                     cv2.imshow("Object Detection", blank_frame)
+                    # Ensure window is refreshed
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord('q'):
+                        connection_active = False
+                        break
                 except Exception as e:
                     print(f"Error displaying blank frame: {e}")
-            
-            # Check for exit key (q) - wrap in try/except to handle headless mode
-            try:
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    connection_active = False
-                    break
-            except Exception:
+            else:
                 # In headless mode, just sleep a bit
                 time.sleep(0.1)
-                pass
             
             # Slight delay to reduce CPU usage
             time.sleep(0.01)
@@ -327,6 +377,8 @@ def main():
     parser.add_argument("--webcam-port", type=int, default=8081, help="Port for webcam streaming server (default: 8081)")
     parser.add_argument("--remote-port", type=int, default=8082, help="Port for receiving processed stream (default: 8082)")
     parser.add_argument("--headless", action="store_true", help="Run in headless mode (no display)")
+    parser.add_argument("--save-frames", action="store_true", help="Save frames periodically")
+    parser.add_argument("--save-dir", default="processed_frames", help="Directory to save frames (default: processed_frames)")
     args = parser.parse_args()
     
     # Get local IP for instructions
@@ -355,7 +407,10 @@ def main():
     threads = []
     
     # Start receiving processed stream in a separate thread
-    receive_thread = threading.Thread(target=receive_processed_stream, args=(args.remote_host, args.remote_port))
+    receive_thread = threading.Thread(
+        target=receive_processed_stream, 
+        args=(args.remote_host, args.remote_port, args.save_dir if args.save_frames else None)
+    )
     receive_thread.daemon = True
     receive_thread.start()
     threads.append(receive_thread)
@@ -368,6 +423,9 @@ def main():
         threads.append(display_thread)
     else:
         print("Running in headless mode (no display)")
+        
+    if args.save_frames:
+        print(f"Will save frames to {args.save_dir}")
     
     try:
         # Keep the main thread alive until user interrupts
