@@ -1,168 +1,91 @@
-# Object Detection System
+# Webcam Processing System
 
-A versatile object detection system with support for real-time webcam tracking and video file processing.
+This project provides scripts for streaming webcam footage to a remote processing server and viewing the processed results.
 
-## Features
+## Requirements
 
-- Support for multiple detection models:
-  - MobileNet SSD (fastest, but less accurate)
-  - YOLOv4-tiny (good balance of speed and accuracy) 
-  - YOLOv8 (most accurate, with multiple implementations)
-- Real-time webcam tracking
-- Video file processing (single or batch)
-- Docker containerization for easy deployment
+- Python 3.6+
+- OpenCV
+- NumPy
+- Requests
 
-## Installation
-
-### Option 1: Native Installation
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/object-detection-system.git
-   cd object-detection-system
-   ```
-
-2. Create a virtual environment (optional but recommended)
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Download model files
-   ```bash
-   python core/download_models.py
-   ```
-
-### Option 2: Docker Installation (Recommended)
-
-1. Clone the repository
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/object-detection-system.git
-   cd object-detection-system
-   ```
-
-2. Run the setup script
-   ```bash
-   ./setup_docker.sh
-   ```
-
-3. Build the Docker image
-   ```bash
-   docker build -t object-detection-system .
-   ```
-
-## Usage
-
-### Native Usage
-
-#### List Available Models
+Install dependencies:
 ```bash
-python main.py --list-models
+pip install opencv-python numpy requests
 ```
 
-#### Real-time Webcam Tracking
+## Scripts
+
+### 1. Connection Test
+
+Tests basic connectivity to the remote server:
+
 ```bash
-python main.py webcam --model yolov8
+./connection_test.py http://server-ip:port
 ```
 
-#### Process a Video File
+### 2. Fix Stream (Viewer Only)
+
+Views processed frames from the server in a browser:
+
 ```bash
-python main.py video --video path/to/video.mp4 --output path/to/output.mp4 --model yolov8
+./fix_stream.py http://server-ip:port/processed.mjpeg
 ```
 
-### Docker Usage
+Options:
+- `--port PORT`: Specify a different port (default: 9099)
+- `--debug`: Enable debug output
+- `--test`: Run in test pattern mode without attempting to connect
 
-#### List Available Models
+### 3. Webcam Streamer (Streamer Only)
+
+Streams webcam footage to the server:
+
 ```bash
-docker run --rm object-detection-system --list-models
+./webcam_streamer.py http://server-ip:port/webcam
 ```
 
-#### Real-time Webcam Tracking (Linux)
+Options:
+- `--fps FPS`: Target frames per second (default: 15)
+- `--width WIDTH`: Width of frames (default: 640)
+- `--height HEIGHT`: Height of frames (default: 480)
+- `--debug`: Enable debug output
+
+### 4. All-in-One (Streamer + Viewer)
+
+Combines the webcam streaming and frame viewing in a single script:
+
 ```bash
-docker run --rm -it \
-  --device=/dev/video0:/dev/video0 \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  object-detection-system webcam --model yolov8
+./all_in_one.py http://server-ip:port
 ```
 
-#### Process a Video File
-```bash
-# Place your video in the input directory, then run:
-docker run --rm \
-  -v "$(pwd)/input:/app/input" \
-  -v "$(pwd)/output:/app/output" \
-  object-detection-system video --model yolov8 --video /app/input/your_video.mp4 --output /app/output/processed.mp4
-```
+Options:
+- `--viewer-port PORT`: Specify a different port for the viewer (default: 9099)
+- `--fps FPS`: Target frames per second for webcam (default: 15)
+- `--width WIDTH`: Width of webcam frames (default: 640)
+- `--height HEIGHT`: Height of webcam frames (default: 480)
+- `--debug`: Enable debug output
+- `--test`: Run in test pattern mode without webcam
 
-### Using Docker Compose
+## Troubleshooting
 
-#### Webcam Tracking
-```bash
-docker-compose up webcam
-```
+### Connectivity Issues
+- Use `connection_test.py` to check basic connectivity to the server
+- Ensure the server is running and accepting connections
+- Check firewall settings on both client and server
+- Verify correct IP addresses and port numbers
 
-#### Process a Single Video
-```bash
-docker-compose up video
-```
+### Webcam Issues
+- Make sure webcam is connected and not in use by another application
+- Try different resolutions if camera fails to initialize
 
-#### Batch Process Videos
-```bash
-docker-compose up batch
-```
+### Display Issues
+- Always use the browser at http://localhost:9099/ (or your specified port)
+- If no frames appear, check server connectivity
+- The test pattern should appear if server connection fails
 
-## Configuration Options
+## Server Endpoints
 
-- `--model {mobilenet,yolo,yolov8}`: Choose detection model (default: mobilenet)
-- `--camera CAMERA`: Camera index (default: 0)
-- `--confidence CONFIDENCE`: Confidence threshold (default: 0.5)
-- `--nms NMS`: Non-maximum suppression threshold for YOLO (default: 0.4)
-- `--classes CLASSES`: Comma-separated list of classes to detect (default: all)
-
-YOLOv8 specific options:
-- `--yolo-size {n,s,m,l,x}`: Model size (default: m)
-- `--force-yolo {ultralytics,onnx,yolov4-tiny,yolov8core}`: YOLOv8 implementation (default: yolov8core)
-
-## Docker-Specific Information
-
-For more detailed information on using Docker with this project, please see the [Docker README](DOCKER_README.md).
-
-## Project Structure
-
-```
-.
-├── core/                    # Core object detection components
-│   ├── models/              # All model files are stored here
-│   ├── yolov8_wrapper.py    # YOLOv8 implementation with multiple backends
-│   ├── yolov8_core.py       # Lightweight YOLOv8 implementation
-│   ├── download_models.py   # Script to download required model files
-│   └── coco_classes.txt     # COCO dataset class names
-├── webcam_tracking/         # Real-time webcam tracking
-│   ├── human_tracker.py     # MobileNet SSD tracker
-│   ├── human_tracker_yolo.py # YOLOv4-tiny tracker
-│   └── run_tracker.py       # Entry point for webcam tracking
-├── video_processing/        # Video file processing
-│   ├── video_processor.py   # Single video processing
-│   ├── batch_process_videos.py # Batch video processing
-│   └── generate_summary.py  # Generate summary reports
-├── docker-compose.yml       # Docker Compose configuration
-├── Dockerfile               # Docker build instructions
-├── DOCKER_README.md         # Docker-specific documentation
-├── setup_docker.sh          # Docker setup script
-├── requirements.txt         # Python dependencies
-└── main.py                  # Main entry point
-```
-
-## License
-
-[MIT License](LICENSE)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. 
+The system expects the remote server to have these endpoints:
+- `/webcam`: Receives webcam frames via POST requests
+- `/processed.mjpeg`: Streams processed frames as MJPEG stream 
