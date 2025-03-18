@@ -29,6 +29,9 @@ class ViewerHandler(BaseHTTPRequestHandler):
     
     def do_GET(self):
         """Handle GET requests"""
+        # Get global variables
+        global processed_frame, processed_frame_lock, frames_received, last_frame_time
+        
         # Serve the main HTML page
         if self.path == '/' or self.path == '/index.html':
             self.send_response(200)
@@ -158,8 +161,6 @@ class ViewerHandler(BaseHTTPRequestHandler):
         
         # Serve the current frame as JPEG
         elif self.path.startswith('/stream.jpg'):
-            global processed_frame, processed_frame_lock
-            
             with processed_frame_lock:
                 if processed_frame is not None:
                     frame_to_send = processed_frame.copy()
@@ -206,8 +207,6 @@ class ViewerHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            
-            global frames_received, last_frame_time
             
             current_time = time.time()
             last_frame_ago = current_time - last_frame_time if last_frame_time > 0 else 0
