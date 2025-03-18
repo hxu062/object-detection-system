@@ -1,0 +1,44 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# Local development files
+.env
+.vscode/
+.idea/
+
+# Git files
+.git
+.gitignore
+
+# Video files (can be mounted at runtime)
+*.mp4
+*.avi
+*.mov
+nissan_videos/
+
+# Downloaded model files (will be downloaded during build)
+core/models/*
+
+# Exported data
+*.csv
+*.json
+*.txt
+!requirements.txt
+!coco_classes.txt
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Node.js files if any
+node_modules/
+npm-debug.log 

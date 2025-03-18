@@ -1,0 +1,376 @@
+=== DETECTION SUMMARY ===
+Total videos analyzed: 46
+Total video duration: 905.74 seconds (15.10 minutes)
+Total frames: 22556
+Total detections (sampled): 9847
+Average detections per frame: 0.44
+
+=== PER VIDEO STATISTICS ===
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_091905_061_000.mp4
+  Duration: 25.00 seconds
+  Frame count: 750
+  Resolution: 1920x1080
+  Detections (sampled): 113
+  Avg objects per frame: 1.51
+  Max objects per frame: 3
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_091905_061_001.mp4
+  Duration: 16.67 seconds
+  Frame count: 500
+  Resolution: 1920x1080
+  Detections (sampled): 71
+  Avg objects per frame: 1.42
+  Max objects per frame: 3
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_091905_061_002.mp4
+  Duration: 18.63 seconds
+  Frame count: 559
+  Resolution: 1920x1080
+  Detections (sampled): 74
+  Avg objects per frame: 1.32
+  Max objects per frame: 3
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_092005_062_000.mp4
+  Duration: 25.00 seconds
+  Frame count: 750
+  Resolution: 1920x1080
+  Detections (sampled): 76
+  Avg objects per frame: 1.01
+  Max objects per frame: 3
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_092005_062_001.mp4
+  Duration: 16.67 seconds
+  Frame count: 500
+  Resolution: 1920x1080
+  Detections (sampled): 51
+  Avg objects per frame: 1.02
+  Max objects per frame: 3
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_092005_062_002.mp4
+  Duration: 18.37 seconds
+  Frame count: 551
+  Resolution: 1920x1080
+  Detections (sampled): 161
+  Avg objects per frame: 2.88
+  Max objects per frame: 7
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093005_072_000.mp4
+  Duration: 25.14 seconds
+  Frame count: 750
+  Resolution: 1920x1080
+  Detections (sampled): 139
+  Avg objects per frame: 1.85
+  Max objects per frame: 5
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093005_072_001.mp4
+  Duration: 16.76 seconds
+  Frame count: 500
+  Resolution: 1920x1080
+  Detections (sampled): 53
+  Avg objects per frame: 1.06
+  Max objects per frame: 5
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093005_072_002.mp4
+  Duration: 18.37 seconds
+  Frame count: 548
+  Resolution: 1920x1080
+  Detections (sampled): 104
+  Avg objects per frame: 1.89
+  Max objects per frame: 4
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093905_081_000.mp4
+  Duration: 24.00 seconds
+  Frame count: 720
+  Resolution: 1920x1080
+  Detections (sampled): 549
+  Avg objects per frame: 7.62
+  Max objects per frame: 59
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093905_081_001.mp4
+  Duration: 20.80 seconds
+  Frame count: 624
+  Resolution: 1920x1080
+  Detections (sampled): 191
+  Avg objects per frame: 3.03
+  Max objects per frame: 7
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_093905_081_002.mp4
+  Duration: 15.43 seconds
+  Frame count: 463
+  Resolution: 1920x1080
+  Detections (sampled): 198
+  Avg objects per frame: 4.21
+  Max objects per frame: 8
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_094305_085_000.mp4
+  Duration: 20.80 seconds
+  Frame count: 624
+  Resolution: 1920x1080
+  Detections (sampled): 526
+  Avg objects per frame: 8.35
+  Max objects per frame: 32
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_094305_085_001.mp4
+  Duration: 23.47 seconds
+  Frame count: 704
+  Resolution: 1920x1080
+  Detections (sampled): 296
+  Avg objects per frame: 4.17
+  Max objects per frame: 7
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_094305_085_002.mp4
+  Duration: 16.00 seconds
+  Frame count: 480
+  Resolution: 1920x1080
+  Detections (sampled): 179
+  Avg objects per frame: 3.73
+  Max objects per frame: 5
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_094305_085_003.mp4
+  Duration: 0.17 seconds
+  Frame count: 5
+  Resolution: 1920x1080
+  Detections (sampled): 4
+  Avg objects per frame: 4.00
+  Max objects per frame: 4
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_102905_131_000.mp4
+  Duration: 21.69 seconds
+  Frame count: 647
+  Resolution: 1920x1080
+  Detections (sampled): 331
+  Avg objects per frame: 5.09
+  Max objects per frame: 12
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_102905_131_001.mp4
+  Duration: 21.12 seconds
+  Frame count: 630
+  Resolution: 1920x1080
+  Detections (sampled): 357
+  Avg objects per frame: 5.67
+  Max objects per frame: 15
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_102905_131_002.mp4
+  Duration: 17.23 seconds
+  Frame count: 514
+  Resolution: 1920x1080
+  Detections (sampled): 262
+  Avg objects per frame: 5.04
+  Max objects per frame: 12
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_104605_148_000.mp4
+  Duration: 22.59 seconds
+  Frame count: 672
+  Resolution: 1920x1080
+  Detections (sampled): 472
+  Avg objects per frame: 6.94
+  Max objects per frame: 16
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_104605_148_001.mp4
+  Duration: 20.97 seconds
+  Frame count: 624
+  Resolution: 1920x1080
+  Detections (sampled): 254
+  Avg objects per frame: 4.03
+  Max objects per frame: 11
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_104605_148_002.mp4
+  Duration: 16.54 seconds
+  Frame count: 492
+  Resolution: 1920x1080
+  Detections (sampled): 219
+  Avg objects per frame: 4.38
+  Max objects per frame: 9
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_123205_254_000.mp4
+  Duration: 21.87 seconds
+  Frame count: 656
+  Resolution: 1920x1080
+  Detections (sampled): 218
+  Avg objects per frame: 3.30
+  Max objects per frame: 7
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_123205_254_001.mp4
+  Duration: 22.93 seconds
+  Frame count: 688
+  Resolution: 1920x1080
+  Detections (sampled): 521
+  Avg objects per frame: 7.55
+  Max objects per frame: 25
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_123205_254_002.mp4
+  Duration: 15.57 seconds
+  Frame count: 467
+  Resolution: 1920x1080
+  Detections (sampled): 364
+  Avg objects per frame: 7.74
+  Max objects per frame: 14
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130429_279_000.mp4
+  Duration: 20.48 seconds
+  Frame count: 606
+  Resolution: 1920x1080
+  Detections (sampled): 312
+  Avg objects per frame: 5.11
+  Max objects per frame: 32
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130429_279_001.mp4
+  Duration: 22.85 seconds
+  Frame count: 676
+  Resolution: 1920x1080
+  Detections (sampled): 560
+  Avg objects per frame: 8.24
+  Max objects per frame: 56
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130429_279_002.mp4
+  Duration: 17.14 seconds
+  Frame count: 507
+  Resolution: 1920x1080
+  Detections (sampled): 239
+  Avg objects per frame: 4.69
+  Max objects per frame: 12
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130729_282_000.mp4
+  Duration: 25.00 seconds
+  Frame count: 748
+  Resolution: 1920x1080
+  Detections (sampled): 191
+  Avg objects per frame: 2.55
+  Max objects per frame: 10
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130729_282_001.mp4
+  Duration: 15.08 seconds
+  Frame count: 451
+  Resolution: 1920x1080
+  Detections (sampled): 51
+  Avg objects per frame: 1.11
+  Max objects per frame: 2
+
+Filename: J32V_JPN_AD2_V001_02CAM2_20220825_130729_282_002.mp4
+  Duration: 20.02 seconds
+  Frame count: 599
+  Resolution: 1920x1080
+  Detections (sampled): 147
+  Avg objects per frame: 2.45
+  Max objects per frame: 7
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_083443_085_000.mp4
+  Duration: 32.00 seconds
+  Frame count: 480
+  Resolution: 1280x720
+  Detections (sampled): 305
+  Avg objects per frame: 6.35
+  Max objects per frame: 22
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_083443_085_001.mp4
+  Duration: 16.00 seconds
+  Frame count: 240
+  Resolution: 1280x720
+  Detections (sampled): 233
+  Avg objects per frame: 9.71
+  Max objects per frame: 15
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_083443_085_002.mp4
+  Duration: 12.20 seconds
+  Frame count: 183
+  Resolution: 1280x720
+  Detections (sampled): 204
+  Avg objects per frame: 10.74
+  Max objects per frame: 17
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_084543_096_000.mp4
+  Duration: 23.47 seconds
+  Frame count: 352
+  Resolution: 1280x720
+  Detections (sampled): 176
+  Avg objects per frame: 4.89
+  Max objects per frame: 10
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_084543_096_001.mp4
+  Duration: 22.40 seconds
+  Frame count: 336
+  Resolution: 1280x720
+  Detections (sampled): 155
+  Avg objects per frame: 4.56
+  Max objects per frame: 8
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_084543_096_002.mp4
+  Duration: 15.13 seconds
+  Frame count: 227
+  Resolution: 1280x720
+  Detections (sampled): 91
+  Avg objects per frame: 3.96
+  Max objects per frame: 7
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_131230_074_000.mp4
+  Duration: 33.33 seconds
+  Frame count: 500
+  Resolution: 1280x720
+  Detections (sampled): 174
+  Avg objects per frame: 3.48
+  Max objects per frame: 8
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_131230_074_001.mp4
+  Duration: 16.67 seconds
+  Frame count: 250
+  Resolution: 1280x720
+  Detections (sampled): 64
+  Avg objects per frame: 2.56
+  Max objects per frame: 5
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_131230_074_002.mp4
+  Duration: 10.47 seconds
+  Frame count: 157
+  Resolution: 1280x720
+  Detections (sampled): 64
+  Avg objects per frame: 4.00
+  Max objects per frame: 7
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_133431_096_000.mp4
+  Duration: 32.00 seconds
+  Frame count: 480
+  Resolution: 1280x720
+  Detections (sampled): 311
+  Avg objects per frame: 6.48
+  Max objects per frame: 17
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_133431_096_001.mp4
+  Duration: 16.40 seconds
+  Frame count: 246
+  Resolution: 1280x720
+  Detections (sampled): 201
+  Avg objects per frame: 8.04
+  Max objects per frame: 15
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_133431_096_002.mp4
+  Duration: 12.60 seconds
+  Frame count: 189
+  Resolution: 1280x720
+  Detections (sampled): 114
+  Avg objects per frame: 6.00
+  Max objects per frame: 13
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_134131_103_000.mp4
+  Duration: 32.00 seconds
+  Frame count: 480
+  Resolution: 1280x720
+  Detections (sampled): 287
+  Avg objects per frame: 5.98
+  Max objects per frame: 12
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_134131_103_001.mp4
+  Duration: 16.00 seconds
+  Frame count: 240
+  Resolution: 1280x720
+  Detections (sampled): 86
+  Avg objects per frame: 3.58
+  Max objects per frame: 7
+
+Filename: P33A_CTBQ89_AD2_V001_02CAM2_20231027_134131_103_002.mp4
+  Duration: 12.73 seconds
+  Frame count: 191
+  Resolution: 1280x720
+  Detections (sampled): 99
+  Avg objects per frame: 4.95
+  Max objects per frame: 11

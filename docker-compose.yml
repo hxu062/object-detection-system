@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  # Service for webcam usage
+  webcam:
+    build: .
+    image: object-detection-system
+    container_name: object-detection-webcam
+    command: webcam --model yolov8
+    volumes:
+      - ./output:/app/output
+    devices:
+      - /dev/video0:/dev/video0  # Map webcam device
+    environment:
+      - DISPLAY=${DISPLAY}
+    network_mode: host  # Needed for GUI display on Linux
+
+  # Service for video processing
+  video:
+    build: .
+    image: object-detection-system
+    container_name: object-detection-video
+    command: video --model yolov8 --video /app/input/video.mp4 --output /app/output/processed.mp4
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+
+  # Service for batch video processing
+  batch:
+    build: .
+    image: object-detection-system
+    container_name: object-detection-batch
+    command: video --model yolov8 --batch
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output 
