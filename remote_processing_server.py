@@ -76,11 +76,60 @@ class ProcessedStreamHandler(BaseHTTPRequestHandler):
                     
             except Exception as e:
                 print(f"Streaming error: {e}")
+        elif self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'<html><head><title>Object Detection Server</title></head><body><h1>Object Detection Server</h1><p>Server is running. Access the processed stream at <a href="/processed.mjpeg">/processed.mjpeg</a></p></body></html>')
         else:
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(b'<html><head></head><body><h1>404 Not Found</h1></body></html>')
+    
+    def do_POST(self):
+        """Handle POST requests for webcam frames"""
+        if self.path == '/webcam':
+            try:
+                # Get content length
+                content_length = int(self.headers['Content-Length'])
+                
+                # Read the frame data
+                post_data = self.rfile.read(content_length)
+                
+                # Convert bytes to numpy array
+                nparr = np.frombuffer(post_data, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                
+                if img is not None:
+                    # Update the global frame with lock
+                    with latest_frame_lock:
+                        global latest_frame
+                        latest_frame = img
+                    
+                    # Send success response
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(b"OK")
+                else:
+                    # Failed to decode image
+                    self.send_response(400)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(b"Failed to decode image")
+            except Exception as e:
+                print(f"Error handling webcam frame: {e}")
+                self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(f"Error: {str(e)}".encode())
+        else:
+            # Path not found
+            self.send_response(404)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b"Not Found")
     
     # Disable request logging to console
     def log_message(self, format, *args):
@@ -330,18 +379,28 @@ def main():
     parser = argparse.ArgumentParser(description='Remote processing server for object detection')
     
     # Server configuration
-    parser.add_argument('--port', type=int, default=8082, help='Port to serve processed stream (default: 8082)')
-    parser.add_argument('--webcam-port', type=int, default=8083, help='Port for webcam server (default: 8083)')
-    parser.add_argument('--client-url', type=str, help='URL of client webcam stream (e.g., http://client-ip:8081/video.mjpeg)')
-    parser.add_argument('--webcam', action='store_true', help='Use local webcam instead of client stream')
-    parser.add_argument('--camera', type=int, default=0, help='Camera index to use with --webcam (default: 0)')
+    parser.add_argument('--port', type=int, default=8082, 
+                        help='Port to serve processed stream (default: 8082)')
+    
+    # Input source options
+    parser.add_argument('--client-url', type=str, 
+                        help='URL of client webcam stream (e.g., http://client-ip:8081/video.mjpeg)')
+    parser.add_argument('--webcam', action='store_true',
+                        help='Use local webcam instead of client stream')
+    parser.add_argument('--camera', type=int, default=0,
+                        help='Camera index to use with --webcam (default: 0)')
+    parser.add_argument('--accept-posts', action='store_true', 
+                        help='Accept webcam frames via POST requests to /webcam endpoint')
     
     # The model parameters
     parser.add_argument('--model', type=str, choices=['mobilenet', 'yolo', 'yolov8'], default='mobilenet',
                         help='Model to use: mobilenet, yolo, or yolov8 (default: mobilenet)')
-    parser.add_argument('--confidence', type=float, default=0.5, help='Confidence threshold (default: 0.5)')
-    parser.add_argument('--nms', type=float, default=0.4, help='Non-maximum suppression threshold for YOLO (default: 0.4)')
-    parser.add_argument('--classes', type=str, help='Comma-separated list of classes to detect (default: all classes)')
+    parser.add_argument('--confidence', type=float, default=0.5, 
+                        help='Confidence threshold (default: 0.5)')
+    parser.add_argument('--nms', type=float, default=0.4, 
+                        help='Non-maximum suppression threshold for YOLO (default: 0.4)')
+    parser.add_argument('--classes', type=str, 
+                        help='Comma-separated list of classes to detect (default: all classes)')
     
     # YOLOv8 specific arguments
     parser.add_argument('--yolo-size', type=str, choices=['n', 's', 'm', 'l', 'x'], default='m',
@@ -356,9 +415,6 @@ def main():
     if args.classes:
         target_classes = [cls.strip() for cls in args.classes.split(',')]
     
-    # Client URL for webcam stream
-    client_url = args.client_url
-
     # Get all IP addresses of this host
     host_ips = []
     try:
@@ -377,18 +433,23 @@ def main():
     print(f"Server running on port: {args.port}")
     print(f"Server IP addresses: {', '.join(list(set(host_ips)))}")
     
-    if args.webcam:
-        print(f"Using local webcam (camera index: {args.camera})")
-    elif args.client_url:
-        print(f"Expecting client stream from: {args.client_url}")
-    else:
-        print("No input source specified. Use --webcam or --client-url.")
+    # Validate input source options
+    if not args.webcam and not args.client_url and not args.accept_posts:
+        print("No input source specified. Use --webcam, --client-url, or --accept-posts")
+        print("For client webcam POST mode, use: --accept-posts")
         parser.print_help()
         sys.exit(1)
     
+    if args.webcam:
+        print(f"Using local webcam (camera index: {args.camera})")
+    if args.client_url:
+        print(f"Expecting client stream from: {args.client_url}")
+    if args.accept_posts:
+        print(f"Accepting webcam frames via POST to: /webcam endpoint")
+    
     print("=============================================")
     
-    # Test if the output port is available
+    # Check if the server port is already in use
     try:
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         test_socket.bind(('0.0.0.0', args.port))
@@ -396,71 +457,8 @@ def main():
         print(f"Port {args.port} is available.")
     except socket.error as e:
         print(f"Warning: Port {args.port} may be in use: {e}")
-        print("Please try a different port with --port")
-        return
     
-    # Test if the webcam port is available (if we're receiving client frames)
-    if not args.webcam and args.client_url:
-        try:
-            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            test_socket.bind(('0.0.0.0', args.webcam_port))
-            test_socket.close()
-            print(f"Port {args.webcam_port} is available.")
-        except socket.error as e:
-            print(f"Warning: Port {args.webcam_port} may be in use: {e}")
-            print("Please try a different port with --webcam-port")
-            return
-
-    # Add a webcam handler
-    class WebcamHandler(BaseHTTPRequestHandler):
-        def do_POST(self):
-            """Handle POST requests for webcam frames from client"""
-            if self.path == '/webcam':
-                content_length = int(self.headers['Content-Length'])
-                # Read the data from the request
-                post_data = self.rfile.read(content_length)
-                
-                try:
-                    # Convert to numpy array
-                    nparr = np.frombuffer(post_data, np.uint8)
-                    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                    if img is not None:
-                        # Update the global frame with lock
-                        with latest_frame_lock:
-                            global latest_frame
-                            latest_frame = img
-                            
-                        # Send a simple response
-                        self.send_response(200)
-                        self.send_header('Content-type', 'text/plain')
-                        self.end_headers()
-                        self.wfile.write(b"OK")
-                    else:
-                        self.send_response(400)
-                        self.end_headers()
-                        self.wfile.write(b"Failed to decode image")
-                except Exception as e:
-                    print(f"Error processing webcam frame: {e}")
-                    self.send_response(500)
-                    self.end_headers()
-                    self.wfile.write(str(e).encode())
-            else:
-                self.send_response(404)
-                self.end_headers()
-                
-        def log_message(self, format, *args):
-            # Suppress logs to keep console clean
-            return
-    
-    # Start the webcam handler server if we're receiving client frames
-    if not args.webcam and args.client_url:
-        webcam_server = HTTPServer(('0.0.0.0', args.webcam_port), WebcamHandler)
-        webcam_thread = threading.Thread(target=webcam_server.serve_forever)
-        webcam_thread.daemon = True
-        webcam_thread.start()
-        print(f"Webcam server started on port {args.webcam_port}")
-        
-    # Start the processed stream server (for sending processed frames back)
+    # Start the processed stream server
     httpd = run_processed_stream_server(args.port)
     
     # Start processing frames in a separate thread (start this first to initialize the model)
@@ -506,6 +504,9 @@ def main():
         receive_thread = threading.Thread(target=receive_webcam_stream, args=(args.client_url,))
         receive_thread.daemon = True
         receive_thread.start()
+    # No additional thread needed for POST mode, the handler will update latest_frame
+    elif args.accept_posts:
+        print("Ready to accept webcam frames via POST to /webcam endpoint")
     
     try:
         # Keep the main thread alive
@@ -517,8 +518,6 @@ def main():
         processing_active = False
         time.sleep(1)  # Give threads time to clean up
         httpd.shutdown()
-        if not args.webcam and args.client_url:
-            webcam_server.shutdown()
         print("Done")
 
 if __name__ == "__main__":
