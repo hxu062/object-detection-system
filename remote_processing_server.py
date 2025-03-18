@@ -330,28 +330,18 @@ def main():
     parser = argparse.ArgumentParser(description='Remote processing server for object detection')
     
     # Server configuration
-    parser.add_argument('--port', type=int, default=8082, 
-                        help='Port to serve processed stream (default: 8082)')
-    
-    # Client connection parameters (optional)
-    parser.add_argument('--client-url', type=str, 
-                        help='URL of client webcam stream (e.g., http://client-ip:8081/video.mjpeg)')
-    
-    # Camera options
-    parser.add_argument('--webcam', action='store_true',
-                        help='Use local webcam instead of client stream')
-    parser.add_argument('--camera', type=int, default=0,
-                        help='Camera index to use with --webcam (default: 0)')
+    parser.add_argument('--port', type=int, default=8082, help='Port to serve processed stream (default: 8082)')
+    parser.add_argument('--webcam-port', type=int, default=8083, help='Port for webcam server (default: 8083)')
+    parser.add_argument('--client-url', type=str, help='URL of client webcam stream (e.g., http://client-ip:8081/video.mjpeg)')
+    parser.add_argument('--webcam', action='store_true', help='Use local webcam instead of client stream')
+    parser.add_argument('--camera', type=int, default=0, help='Camera index to use with --webcam (default: 0)')
     
     # The model parameters
     parser.add_argument('--model', type=str, choices=['mobilenet', 'yolo', 'yolov8'], default='mobilenet',
                         help='Model to use: mobilenet, yolo, or yolov8 (default: mobilenet)')
-    parser.add_argument('--confidence', type=float, default=0.5, 
-                        help='Confidence threshold (default: 0.5)')
-    parser.add_argument('--nms', type=float, default=0.4, 
-                        help='Non-maximum suppression threshold for YOLO (default: 0.4)')
-    parser.add_argument('--classes', type=str, 
-                        help='Comma-separated list of classes to detect (default: all classes)')
+    parser.add_argument('--confidence', type=float, default=0.5, help='Confidence threshold (default: 0.5)')
+    parser.add_argument('--nms', type=float, default=0.4, help='Non-maximum suppression threshold for YOLO (default: 0.4)')
+    parser.add_argument('--classes', type=str, help='Comma-separated list of classes to detect (default: all classes)')
     
     # YOLOv8 specific arguments
     parser.add_argument('--yolo-size', type=str, choices=['n', 's', 'm', 'l', 'x'], default='m',
@@ -366,6 +356,9 @@ def main():
     if args.classes:
         target_classes = [cls.strip() for cls in args.classes.split(',')]
     
+    # Client URL for webcam stream
+    client_url = args.client_url
+
     # Get all IP addresses of this host
     host_ips = []
     try:
@@ -395,7 +388,7 @@ def main():
     
     print("=============================================")
     
-    # Check if the server port is already in use
+    # Test if the output port is available
     try:
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         test_socket.bind(('0.0.0.0', args.port))
@@ -403,7 +396,21 @@ def main():
         print(f"Port {args.port} is available.")
     except socket.error as e:
         print(f"Warning: Port {args.port} may be in use: {e}")
+        print("Please try a different port with --port")
+        return
     
+    # Test if the webcam port is available (if we're receiving client frames)
+    if not args.webcam and args.client_url:
+        try:
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.bind(('0.0.0.0', args.webcam_port))
+            test_socket.close()
+            print(f"Port {args.webcam_port} is available.")
+        except socket.error as e:
+            print(f"Warning: Port {args.webcam_port} may be in use: {e}")
+            print("Please try a different port with --webcam-port")
+            return
+
     # Add a webcam handler
     class WebcamHandler(BaseHTTPRequestHandler):
         def do_POST(self):
@@ -447,11 +454,11 @@ def main():
     
     # Start the webcam handler server if we're receiving client frames
     if not args.webcam and args.client_url:
-        webcam_server = HTTPServer(('0.0.0.0', args.port), WebcamHandler)
+        webcam_server = HTTPServer(('0.0.0.0', args.webcam_port), WebcamHandler)
         webcam_thread = threading.Thread(target=webcam_server.serve_forever)
         webcam_thread.daemon = True
         webcam_thread.start()
-        print(f"Webcam server started on port {args.port}")
+        print(f"Webcam server started on port {args.webcam_port}")
         
     # Start the processed stream server (for sending processed frames back)
     httpd = run_processed_stream_server(args.port)
