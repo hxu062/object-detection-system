@@ -116,7 +116,7 @@ def run_webcam_server(port=8081):
     thread.start()
     return httpd
 
-def receive_processed_stream(remote_host, remote_port=8082, save_dir=None):
+def receive_processed_stream(remote_host, remote_port=9000, save_dir=None):
     """Receive and display the processed video stream from the remote host"""
     global connection_active, frames_received, decode_errors, last_frame_time
     url = f"http://{remote_host}:{remote_port}/processed.mjpeg"
@@ -375,7 +375,7 @@ def main():
     parser = argparse.ArgumentParser(description="Remote webcam streaming and viewing")
     parser.add_argument("remote_host", help="IP address or hostname of the remote processing server")
     parser.add_argument("--webcam-port", type=int, default=8081, help="Port for webcam streaming server (default: 8081)")
-    parser.add_argument("--remote-port", type=int, default=8082, help="Port for receiving processed stream (default: 8082)")
+    parser.add_argument("--remote-port", type=int, default=9000, help="Port for receiving processed stream (default: 9000)")
     parser.add_argument("--headless", action="store_true", help="Run in headless mode (no display)")
     parser.add_argument("--save-frames", action="store_true", help="Save frames periodically")
     parser.add_argument("--save-dir", default="processed_frames", help="Directory to save frames (default: processed_frames)")
@@ -394,7 +394,7 @@ def main():
     print("\n====== Remote Object Detection Client ======")
     print(f"Your MacBook's IP address is: {local_ip}")
     print("Make sure the remote server is running with:")
-    print(f"  python remote_processing_server.py --client-host {local_ip} --model yolov8")
+    print(f"  python remote_processing_server.py --port 9000 --webcam-port 9001 --client-url http://{local_ip}:{args.webcam_port}/video.mjpeg --model yolov8 --force-yolo yolov4-tiny")
     print("=============================================\n")
     
     # Set connection active before starting threads
