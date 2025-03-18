@@ -32,6 +32,8 @@ def main():
     parser.add_argument('--confidence', type=float, default=0.5, help='Confidence threshold (default: 0.5)')
     parser.add_argument('--nms', type=float, default=0.4, help='Non-maximum suppression threshold for YOLO (default: 0.4)')
     parser.add_argument('--classes', type=str, help='Comma-separated list of classes to detect (default: all classes)')
+    parser.add_argument('--no-display', action='store_true', help='Run without display (headless mode)')
+    parser.add_argument('--output', type=str, help='Path to output video file (for saving results)')
     
     # YOLOv8 specific arguments
     parser.add_argument('--yolo-size', type=str, choices=['n', 's', 'm', 'l', 'x'], default='m',
@@ -101,6 +103,22 @@ def main():
     frame_count = 0
     start_time = time.time()
     
+    # Initialize video writer if output is specified
+    writer = None
+    if args.output:
+        # Get video dimensions
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        
+        # Create video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        writer = cv2.VideoWriter(args.output, fourcc, fps, (width, height))
+        
+        if not writer.isOpened():
+            print(f"Error: Could not open video writer for {args.output}")
+            return
+    
     while True:
         # Read a frame
         ret, frame = cap.read()
@@ -125,8 +143,17 @@ def main():
         else:
             processed_frame = tracker.detect_objects(frame)
         
-        # Display the result
-        cv2.imshow('Object Tracking', processed_frame)
+        # Write to output file if specified
+        if writer:
+            writer.write(processed_frame)
+        
+        # Display the result if not in headless mode
+        if not args.no_display:
+            cv2.imshow('Object Tracking', processed_frame)
+            
+            # Press 'q' to exit
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
         
         # Calculate FPS every 10 frames
         frame_count += 1
@@ -134,14 +161,13 @@ def main():
             elapsed_time = time.time() - start_time
             fps = frame_count / elapsed_time if elapsed_time > 0 else 0
             print(f"FPS: {fps:.2f}", end='\r')
-        
-        # Press 'q' to exit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
     
     # Release resources
     cap.release()
-    cv2.destroyAllWindows()
+    if writer:
+        writer.release()
+    if not args.no_display:
+        cv2.destroyAllWindows()
     
     if frame_count > 0:
         total_time = time.time() - start_time

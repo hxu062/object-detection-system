@@ -6,14 +6,12 @@ services:
     build: .
     image: object-detection-system
     container_name: object-detection-webcam
-    command: webcam --model yolov8
+    command: webcam --model yolov8 --video http://host.docker.internal:8081/video.mjpeg --output /app/output/webcam_output.mp4
     volumes:
       - ./output:/app/output
-    devices:
-      - /dev/video0:/dev/video0  # Map webcam device
-    environment:
-      - DISPLAY=${DISPLAY}
-    network_mode: host  # Needed for GUI display on Linux
+    network_mode: "bridge"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Service for video processing
   video:
